@@ -10,10 +10,12 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.*;
@@ -22,11 +24,21 @@ import static org.junit.jupiter.api.Assumptions.*;
 class CuentaTest {
 
     Cuenta cuenta;
+    private TestInfo testInfo;
+    private TestReporter testReporter;
 
     @BeforeEach
-    void initMetodoTest() {
+    void initMetodoTest(TestInfo testInfo, TestReporter testReporter) {
         this.cuenta = new Cuenta("Andres", new BigDecimal("1000"));
+
+        this.testInfo = testInfo;
+        this.testReporter= testReporter;
+
         System.out.println("iniciando el método");
+
+        testReporter.publishEntry("Ejecutando: " + testInfo.getDisplayName()
+                + " " + testInfo.getTestMethod().orElse(null).getName()
+                + "con las etiquetas " + testInfo.getTags());
 
     }
 
@@ -35,12 +47,19 @@ class CuentaTest {
         System.out.println("Finalizando método");
     }
 
+    @Tag("cacota")
     @Test
     @DisplayName("Probando el nombre de la cuenta")
     void testNombreCuenta() {
         //cuenta.setPersona("Alvaro");
         String esperado = "Andres";
         String real = cuenta.getPersona();
+
+        System.out.println("La etiqueta es " + testInfo.getTags());
+        if (!testInfo.getTags().contains("cuenta")){
+            System.out.println("Aqui haríamos algo");
+        }
+
         assertNotNull(real);
         assertEquals(esperado, real, "El nombre tenia que ser " + esperado);
         assertEquals("Andres", real, () -> "El nombre tenia que ser " + esperado);
@@ -161,17 +180,19 @@ class CuentaTest {
 
     }
 
+    @Tag("saldo")
     @Test
     //@Disabled
     void testSaldoCuentaDev() {
 
         boolean esDev = "desarrollo".equals(System.getenv("ENVIROMENT"));
-        assumeTrue(esDev);
+        //assumeTrue(esDev);
         assertNotNull(cuenta.getSaldo());
-        assertEquals(1000.0000123, cuenta.getSaldo().doubleValue());
+        assertEquals(1000, cuenta.getSaldo().doubleValue());
         assertFalse(cuenta.getSaldo().compareTo(BigDecimal.ZERO) < 0);
     }
 
+    @Tag("saldo")
     @Test
     //@Disabled
     void testSaldoCuentaDev2() {
@@ -186,6 +207,7 @@ class CuentaTest {
 
     }
 
+    //@Tag("saldo")
     @DisplayName("Probando las repeticiones:")
     @RepeatedTest(value = 5, name = "{displayName} repeticion numero {currentRepetition} de {totalRepetitions}")
     //@Disabled
@@ -200,6 +222,7 @@ class CuentaTest {
         assertFalse(cuenta.getSaldo().compareTo(BigDecimal.ZERO) < 0);
     }
 
+    @Tag("params")
     @Nested
     class pruebasParametrizadas{
 
@@ -267,6 +290,7 @@ class CuentaTest {
 
     }
 
+    @Tag("params")
     @ParameterizedTest(name = "Test numero {index} ejecutando con el valor {0} - {argumentsWithNames}")
     @MethodSource("cantidadList")
     void testDebitoParametrizadMethodSource(String cantidad) {
@@ -279,5 +303,34 @@ class CuentaTest {
 
     static List<String> cantidadList() {
         return Arrays.asList("100","200", "300","1000");
+    }
+
+
+    @Nested
+    @Tag("timeout")
+    class ejemplosTimeOut {
+
+
+        @Test
+        @Timeout(1)
+        void pruebaTimeOut() throws InterruptedException {
+            TimeUnit.SECONDS.sleep(2);
+
+        }
+
+        @Test
+        @Timeout(value = 500, unit = TimeUnit.MILLISECONDS)
+        void pruebaTimeOut2() throws InterruptedException {
+            TimeUnit.MILLISECONDS.sleep(501);
+
+        }
+
+        @Test
+        void asserTimeOut(){
+            assertTimeout(Duration.ofSeconds(5),()->{
+                TimeUnit.MILLISECONDS.sleep(501);
+            });
+        }
+
     }
 }
