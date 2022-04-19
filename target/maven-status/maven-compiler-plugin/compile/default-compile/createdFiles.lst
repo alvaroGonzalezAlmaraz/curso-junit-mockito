@@ -1,0 +1,3 @@
+es\wasabiweb\junit\app\models\Banco.class
+es\wasabiweb\junit\app\models\Cuenta.class
+es\wasabiweb\junit\app\models\exceptions\DineroInsuficienteException.class
